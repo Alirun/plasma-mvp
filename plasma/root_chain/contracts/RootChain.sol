@@ -3,6 +3,7 @@ pragma solidity ^0.4.0;
 import "./SafeMath.sol";
 import "./Math.sol";
 import "./PlasmaRLP.sol";
+import "./PlasmaUtils.sol";
 import "./Merkle.sol";
 import "./Validate.sol";
 import "./PriorityQueue.sol";
@@ -155,17 +156,17 @@ contract RootChain {
     function startDepositExit(uint256 _depositPos, address _token, uint256 _amount)
         public
     {
-        uint256 blknum = _depositPos / 1000000000;
+        uint256 blockNumber = PlasmaUtils.getBlockNumber(_depositPos);
 
         // Check that the given UTXO is a deposit.
-        require(blknum % CHILD_BLOCK_INTERVAL != 0);
+        require(blockNumber % CHILD_BLOCK_INTERVAL != 0);
 
         // Validate the given owner and amount.
-        bytes32 root = plasmaBlocks[blknum].root;
+        bytes32 root = plasmaBlocks[blockNumber].root;
         bytes32 depositHash = keccak256(msg.sender, _token, _amount);
         require(root == depositHash);
 
-        addExitToQueue(_depositPos, msg.sender, _token, _amount, plasmaBlocks[blknum].timestamp);
+        addExitToQueue(_depositPos, msg.sender, _token, _amount, plasmaBlocks[blockNumber].timestamp);
     }
 
     /**
@@ -196,21 +197,21 @@ contract RootChain {
     )
         public
     {
-        uint256 blknum = _utxoPos / 1000000000;
-        uint256 txindex = (_utxoPos % 1000000000) / 10000;
-        uint256 oindex = _utxoPos - blknum * 1000000000 - txindex * 10000; 
+        uint256 blockNumber = PlasmaUtils.getBlockNumber(_utxoPos);
+        uint256 txIndex = PlasmaUtils.getTxIndex(_utxoPos);
+        uint256 outputIndex = PlasmaUtils.getOutputIndex(_utxoPos);
 
         // Check the sender owns this UTXO.
-        var exitingTx = _txBytes.createExitingTx(oindex);
+        var exitingTx = _txBytes.createExitingTx(outputIndex);
         require(msg.sender == exitingTx.exitor);
 
         // Check the transaction was included in the chain and is correctly signed.
-        bytes32 root = plasmaBlocks[blknum].root; 
+        bytes32 root = plasmaBlocks[blockNumber].root; 
         bytes32 merkleHash = keccak256(keccak256(_txBytes), ByteUtils.slice(_sigs, 0, 130));
         require(Validate.checkSigs(keccak256(_txBytes), root, exitingTx.inputCount, _sigs));
-        require(merkleHash.checkMembership(txindex, root, _proof));
+        require(merkleHash.checkMembership(txIndex, root, _proof));
 
-        addExitToQueue(_utxoPos, exitingTx.exitor, exitingTx.token, exitingTx.amount, plasmaBlocks[blknum].timestamp);
+        addExitToQueue(_utxoPos, exitingTx.exitor, exitingTx.token, exitingTx.amount, plasmaBlocks[blockNumber].timestamp);
     }
 
     /**
@@ -233,8 +234,8 @@ contract RootChain {
         public
     {
         uint256 eUtxoPos = _txBytes.getUtxoPos(_eUtxoIndex);
-        uint256 txindex = (_cUtxoPos % 1000000000) / 10000;
-        bytes32 root = plasmaBlocks[_cUtxoPos / 1000000000].root;
+        uint256 txIndex = PlasmaUtils.getTxIndex(_cUtxoPos);
+        bytes32 root = plasmaBlocks[PlasmaUtils.getBlockNumber(_cUtxoPos)].root;
         var txHash = keccak256(_txBytes);
         var confirmationHash = keccak256(txHash, root);
         var merkleHash = keccak256(txHash, _sigs);
@@ -242,7 +243,7 @@ contract RootChain {
 
         // Validate the spending transaction.
         require(owner == ECRecovery.recover(confirmationHash, _confirmationSig));
-        require(merkleHash.checkMembership(txindex, root, _proof));
+        require(merkleHash.checkMembership(txIndex, root, _proof));
 
         // Delete the owner but keep the amount to prevent another exit.
         delete exits[eUtxoPos].owner;
