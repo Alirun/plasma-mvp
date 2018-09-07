@@ -44,10 +44,10 @@ class Client(object):
     def submit_block(self, block):
         self.child_chain.submit_block(block)
 
-    def withdraw(self, blknum, txindex, oindex, tx, proof, sigs):
+    def withdraw(self, blknum, txindex, oindex, tx, proof, sigs, confirmation_signatures):
         utxo_pos = blknum * 1000000000 + txindex * 10000 + oindex * 1
         encoded_transaction = rlp.encode(tx, UnsignedTransaction)
-        self.root_chain.startExit(utxo_pos, encoded_transaction, proof, sigs, transact={'from': '0x' + tx.newowner1.hex()})
+        self.root_chain.startExit(utxo_pos, encoded_transaction, proof, sigs, confirmation_signatures, transact={'from': '0x' + tx.newowner1.hex()})
 
     def withdraw_deposit(self, owner, deposit_pos, amount):
         self.root_chain.startDepositExit(deposit_pos, NULL_ADDRESS, amount, transact={'from': owner})

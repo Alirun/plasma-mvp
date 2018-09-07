@@ -187,13 +187,15 @@ contract RootChain {
      * @param _utxoPos The position of the exiting utxo in the format of blknum * 1000000000 + index * 10000 + oindex.
      * @param _txBytes The transaction being exited in RLP bytes format.
      * @param _proof Proof of the exiting transactions inclusion for the block specified by utxoPos.
-     * @param _sigs Both transaction signatures and confirmations signatures used to verify that the exiting transaction has been confirmed.
+     * @param _signatures Signatures that validate the exiting transaction.
+     * @param _confirmationSignatures Signatures that confirm the exiting transaction. 
      */
     function startExit(
         uint256 _utxoPos,
         bytes _txBytes,
         bytes _proof,
-        bytes _sigs
+        bytes _signatures,
+        bytes _confirmationSignatures
     )
         public
     {
@@ -203,13 +205,15 @@ contract RootChain {
 
         // Check the sender owns this UTXO.
         var exitingTx = _txBytes.createExitingTx(outputIndex);
-        require(msg.sender == exitingTx.exitor);
+        require(msg.sender == exitingTx.exitor, "Wrong exitor.");
 
-        // Check the transaction was included in the chain and is correctly signed.
-        bytes32 root = plasmaBlocks[blockNumber].root; 
-        bytes32 merkleHash = keccak256(keccak256(_txBytes), ByteUtils.slice(_sigs, 0, 130));
-        require(Validate.checkSigs(keccak256(_txBytes), root, exitingTx.inputCount, _sigs));
-        require(merkleHash.checkMembership(txIndex, root, _proof));
+        // Check transaction signatures.
+        require(PlasmaUtils.validateSignatures(keccak256(_txBytes), _signatures, _confirmationSignatures), "Invalid signatures.");
+
+        // Check the transaction was included in the chain.
+        bytes32 merkleHash = PlasmaUtils.getMerkleHash(_txBytes, _signatures);
+        bytes32 root = plasmaBlocks[blockNumber].root;
+        require(Merkle.checkMembership(merkleHash, txIndex, root, _proof), "Invalid Merkle proof.");
 
         addExitToQueue(_utxoPos, exitingTx.exitor, exitingTx.token, exitingTx.amount, plasmaBlocks[blockNumber].timestamp);
     }
@@ -237,13 +241,13 @@ contract RootChain {
         uint256 txIndex = PlasmaUtils.getTxIndex(_cUtxoPos);
         bytes32 root = plasmaBlocks[PlasmaUtils.getBlockNumber(_cUtxoPos)].root;
         var txHash = keccak256(_txBytes);
-        var confirmationHash = keccak256(txHash, root);
-        var merkleHash = keccak256(txHash, _sigs);
+        var confirmationHash = keccak256(txHash);
+        var merkleHash = PlasmaUtils.getMerkleHash(_txBytes, _sigs);
         address owner = exits[eUtxoPos].owner;
 
         // Validate the spending transaction.
         require(owner == ECRecovery.recover(confirmationHash, _confirmationSig));
-        require(merkleHash.checkMembership(txIndex, root, _proof));
+        require(Merkle.checkMembership(merkleHash, txIndex, root, _proof));
 
         // Delete the owner but keep the amount to prevent another exit.
         delete exits[eUtxoPos].owner;

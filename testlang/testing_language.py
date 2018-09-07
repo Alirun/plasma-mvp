@@ -72,12 +72,10 @@ class TestingLanguage(object):
 
     def confirm(self, tx_id, signatory1, signatory2=None):
         tx = self.child_chain.get_transaction(tx_id)
-        (blknum, _, _) = decode_utxo_id(tx_id)
-        block_root = self.child_chain.get_block(blknum).root
 
         confirm_sigs = b''
         for signatory in [x for x in [signatory1, signatory2] if x is not None]:
-            confirm_sigs += confirm_tx(tx, block_root, signatory['key'])
+            confirm_sigs += confirm_tx(tx, signatory['key'])
 
         self.confirmations[tx_id] = confirm_sigs
 
@@ -91,11 +89,12 @@ class TestingLanguage(object):
     def start_exit(self, utxo_id, exitor):
         tx = self.child_chain.get_transaction(utxo_id)
 
-        sigs = tx.sig1 + tx.sig2 + self.confirmations[utxo_id]
+        signatures = tx.sig1 + tx.sig2
+        confirmation_signatures = self.confirmations[utxo_id]
         (blknum, _, _) = decode_utxo_id(utxo_id)
         block = self.child_chain.get_block(blknum)
         proof = block.merkle.create_membership_proof(tx.merkle_hash)
 
         self.root_chain.transact({
             'from': exitor['address']
-        }).startExit(utxo_id, tx.encoded, proof, sigs)
+        }).startExit(utxo_id, tx.encoded, proof, signatures, confirmation_signatures)

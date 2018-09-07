@@ -23,5 +23,5 @@ def get_deposit_hash(owner, token, value):
     return u.sha3(owner + token + b'\x00' * 31 + u.int_to_bytes(value))
 
 
-def confirm_tx(tx, root, key):
-    return sign(u.sha3(tx.hash + root), key)
+def confirm_tx(tx, key):
+    return sign(u.sha3(tx.hash), key)

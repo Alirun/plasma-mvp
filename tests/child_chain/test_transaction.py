@@ -1,5 +1,5 @@
 from plasma_core.transaction import Transaction
-from plasma_core.constants import NULL_ADDRESS, NULL_SIGNATURE
+from plasma_core.constants import NULL_ADDRESS
 
 
 def test_transaction(t):
@@ -24,8 +24,8 @@ def test_transaction(t):
     assert tx.amount1 == amount1
     assert tx.newowner2 == newowner2
     assert tx.amount2 == amount2
-    assert tx.sig1 == NULL_SIGNATURE
-    assert tx.sig2 == NULL_SIGNATURE
+    assert tx.sig1 == b''
+    assert tx.sig2 == b''
     tx.sign1(key1)
     assert tx.sender1 == oldowner1
     tx.sign2(key2)

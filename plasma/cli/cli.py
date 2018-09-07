@@ -121,12 +121,13 @@ def withdraw(client,
     # Create the confirmation signatures
     confirmSig1, confirmSig2 = b'', b''
     if key1:
-        confirmSig1 = confirm_tx(tx, block.merkle.root, utils.normalize_key(key1))
+        confirmSig1 = confirm_tx(tx, utils.normalize_key(key1))
     if key2:
-        confirmSig2 = confirm_tx(tx, block.merkle.root, utils.normalize_key(key2))
-    sigs = tx.sig1 + tx.sig2 + confirmSig1 + confirmSig2
+        confirmSig2 = confirm_tx(tx, utils.normalize_key(key2))
+    sigs = tx.sig1 + tx.sig2
+    confirmation_signatures = confirmSig1 + confirmSig2
 
-    client.withdraw(blknum, txindex, oindex, tx, proof, sigs)
+    client.withdraw(blknum, txindex, oindex, tx, proof, sigs, confirmation_signatures)
     print("Submitted withdrawal")
 
 

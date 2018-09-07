@@ -2,7 +2,6 @@ import rlp
 from rlp.sedes import big_endian_int, binary
 from ethereum import utils
 from plasma_core.utils.signatures import get_signer, sign
-from plasma_core.constants import NULL_SIGNATURE
 
 
 class Transaction(rlp.Serializable):
@@ -29,8 +28,8 @@ class Transaction(rlp.Serializable):
                  cur12,
                  newowner1, amount1,
                  newowner2, amount2,
-                 sig1=NULL_SIGNATURE,
-                 sig2=NULL_SIGNATURE):
+                 sig1=b'',
+                 sig2=b''):
         # Input 1
         self.blknum1 = blknum1
         self.txindex1 = txindex1

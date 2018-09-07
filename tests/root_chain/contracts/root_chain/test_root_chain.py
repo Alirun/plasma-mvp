@@ -82,7 +82,7 @@ def test_start_exit(t, root_chain, assert_tx_failed):
     root_chain.deposit(value=value_1, sender=key)
     merkle = FixedMerkle(16, [deposit_tx_hash], True)
     proof = merkle.create_membership_proof(deposit_tx_hash)
-    confirmSig1 = confirm_tx(tx1, root_chain.getPlasmaBlock(dep_blknum)[0], key)
+    confirmSig1 = confirm_tx(tx1, key)
     priority1 = dep_blknum * 1000000000 + 10000 * 0 + 1
     snapshot = t.chain.snapshot()
     sigs = tx1.sig1 + tx1.sig2 + confirmSig1
@@ -107,13 +107,13 @@ def test_start_exit(t, root_chain, assert_tx_failed):
     child_blknum = root_chain.currentChildBlock()
     assert child_blknum == 1000
     root_chain.submitBlock(merkle.root)
-    confirmSig1 = confirm_tx(tx2, root_chain.getPlasmaBlock(child_blknum)[0], key)
+    confirmSig1 = confirm_tx(tx2, key)
     priority2 = child_blknum * 1000000000 + 10000 * 0 + 0
-    sigs = tx2.sig1 + tx2.sig2 + confirmSig1
+    sigs = tx2.sig1 + tx2.sig2
     snapshot = t.chain.snapshot()
     # # Single input exit
     utxo_pos2 = child_blknum * 1000000000 + 10000 * 0 + 0
-    root_chain.startExit(utxo_pos2, tx_bytes2, proof, sigs, sender=key)
+    root_chain.startExit(utxo_pos2, tx_bytes2, proof, sigs, confirmSig1, sender=key)
     assert root_chain.getExit(priority2) == ['0x' + owner.hex(), NULL_ADDRESS_HEX, 100]
     t.chain.revert(snapshot)
     dep2_blknum = root_chain.getDepositBlock()
@@ -130,13 +130,14 @@ def test_start_exit(t, root_chain, assert_tx_failed):
     child2_blknum = root_chain.currentChildBlock()
     assert child2_blknum == 2000
     root_chain.submitBlock(merkle.root)
-    confirmSig1 = confirm_tx(tx3, root_chain.getPlasmaBlock(child2_blknum)[0], key)
-    confirmSig2 = confirm_tx(tx3, root_chain.getPlasmaBlock(child2_blknum)[0], key)
+    confirmSig1 = confirm_tx(tx3, key)
+    confirmSig2 = confirm_tx(tx3, key)
     priority3 = child2_blknum * 1000000000 + 10000 * 0 + 0
-    sigs = tx3.sig1 + tx3.sig2 + confirmSig1 + confirmSig2
+    sigs = tx3.sig1 + tx3.sig2
+    confirmation_signatures = confirmSig1 + confirmSig2
     # Double input exit
     utxoPos3 = child2_blknum * 1000000000 + 10000 * 0 + 0
-    root_chain.startExit(utxoPos3, tx_bytes3, proof, sigs, sender=key)
+    root_chain.startExit(utxoPos3, tx_bytes3, proof, sigs, confirmation_signatures, sender=key)
     assert root_chain.getExit(priority3) == ['0x' + owner.hex(), NULL_ADDRESS_HEX, 100]
 
 
@@ -152,7 +153,7 @@ def test_challenge_exit(t, u, root_chain, assert_tx_failed):
     root_chain.deposit(value=value_1, sender=key)
     merkle = FixedMerkle(16, [deposit_tx_hash], True)
     proof = merkle.create_membership_proof(deposit_tx_hash)
-    confirmSig1 = confirm_tx(tx1, root_chain.getPlasmaBlock(utxo_pos1)[0], key)
+    confirmSig1 = confirm_tx(tx1, key)
     sigs = tx1.sig1 + tx1.sig2 + confirmSig1
     root_chain.startDepositExit(utxo_pos1, NULL_ADDRESS, tx1.amount1, sender=key)
     tx3 = Transaction(utxo_pos2, 0, 0, 0, 0, 0,
@@ -164,7 +165,7 @@ def test_challenge_exit(t, u, root_chain, assert_tx_failed):
     proof = merkle.create_membership_proof(tx3.merkle_hash)
     child_blknum = root_chain.currentChildBlock()
     root_chain.submitBlock(merkle.root)
-    confirmSig = confirm_tx(tx3, root_chain.getPlasmaBlock(child_blknum)[0], key)
+    confirmSig = confirm_tx(tx3, key)
     sigs = tx3.sig1 + tx3.sig2
     utxo_pos3 = child_blknum * 1000000000 + 10000 * 0 + 0
     tx4 = Transaction(utxo_pos1, 0, 0, 0, 0, 0,
@@ -176,7 +177,7 @@ def test_challenge_exit(t, u, root_chain, assert_tx_failed):
     proof = merkle.create_membership_proof(tx4.merkle_hash)
     child_blknum = root_chain.currentChildBlock()
     root_chain.submitBlock(merkle.root)
-    confirmSig = confirm_tx(tx4, root_chain.getPlasmaBlock(child_blknum)[0], key)
+    confirmSig = confirm_tx(tx4, key)
     sigs = tx4.sig1 + tx4.sig2
     utxo_pos4 = child_blknum * 1000000000 + 10000 * 0 + 0
     oindex1 = 0

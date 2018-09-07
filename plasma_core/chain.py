@@ -63,11 +63,11 @@ class Chain(object):
             input_tx = self.blocks[blknum].transaction_set[txindex]
 
             if oindex == 0:
-                valid_signature = tx.sig1 != NULL_SIGNATURE and input_tx.newowner1 == tx.sender1
+                valid_signature = tx.sig1 != b'' and input_tx.newowner1 == tx.sender1
                 spent = input_tx.spent1
                 input_amount += input_tx.amount1
             else:
-                valid_signature = tx.sig2 != NULL_SIGNATURE and input_tx.newowner2 == tx.sender2
+                valid_signature = tx.sig2 != b'' and input_tx.newowner2 == tx.sender2
                 spent = input_tx.spent2
                 input_amount += input_tx.amount2
 
